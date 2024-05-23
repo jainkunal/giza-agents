@@ -3,6 +3,8 @@ ADDRESSES = {
   # Enzyme contracts.
   1: {
     'fundDeployer': "0x4f1C53F096533C04d8157EFB6Bca3eb22ddC6360",
+    'fundValueCalculator': '0x490e64e0690b4aa481fb02255aed3d052bad7bf1',
+    'fundValueCalculatorRouter': '0x7c728cd0cfa92401e01a4849a01b57ee53f5b2b9',
     'valueInterpreter': "0xD7B0610dB501b15Bfb9B7DDad8b3869de262a327",
     'feeManager': "0xAf0DFFAC1CE85c3fCe4c2BF50073251F615EefC4",
     'integrationManager': "0x31329024f1a3E4a4B3336E0b1DfA74CC3FEc633e",
@@ -64,5 +66,9 @@ ADDRESSES = {
     'wbtc': "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
     'weth': "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     'yearnVaultV2Weth': "0xa258C4606Ca8206D8aA700cE2143D7db854D168c",
+    # Policies
+    'MinMaxInvestmentPolicy': "0xebdadFC929c357d12281118828AeA556db5be30C",
+    # Fees
+    "ManagementFee": "0xFaF2c3DB614E9d38fE05EDc634848BE7Ff0542B9",
   }
 }

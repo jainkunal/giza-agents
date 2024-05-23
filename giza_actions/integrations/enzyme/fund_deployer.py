@@ -1,56 +1,32 @@
 import os
 from ape import Contract, chain
+from giza_actions.integrations.enzyme.constants import ADDRESSES
 import re
+from typing import List
 
 class FundDeployer:
-    def __init__(self, address: str, sender: str):
+    def __init__(self, sender: str, chain_id: int = 1):
         self.contract = Contract(
-            address,
+            ADDRESSES[chain_id]['fundDeployer'],
             abi=os.path.join(os.path.dirname(__file__), "assets/fund_deployer.json"),
         )
         self.sender = sender
 
-    # def create_vault(self, name: str, symbol: str, symbol: str, denomination_asset: str, shares_action_timelock_in_seconds: int, fee_manager_config_data: hex, policy_manager_config_data: hex, owner: str = self.sender) -> str:
-    #     return self.contract.createVault(_fundOwner=owner, _fundName=name, _fundSymbol=symbol, _denominationAsset=denomination_asset, _sharesActionTimelock=shares_action_timelock_in_seconds, _feeManagerConfigData=fee_manager_config_data, _policyManagerConfigData=policy_manager_config_data, sender=self.sender)
+    def create_fund(self, name: str, symbol: str, denomination_asset: str, shares_action_timelock_in_seconds: int, fee_manager_config_data: hex, policy_manager_config_data: hex, fund_owner: str) -> str:
+        return self.contract.createNewFund(fund_owner, name, symbol, denomination_asset, shares_action_timelock_in_seconds, fee_manager_config_data, policy_manager_config_data, sender=self.sender)
 
-    def get_vaults_list(self):
+    def get_vaults_list(self, start_block: int = 0, end_block: int = 0):
         start_block = 0
-        end_block = chain.blocks[-1].number
+        if end_block == 0:
+            end_block = chain.blocks[-1].number
         try:
             vaults_created = self.contract.NewFundCreated.query("*", start_block=start_block, stop_block=end_block, engine_to_use="subsquid")
         except Exception as e:
-            last_integer = re.findall(r'\d+', e)[-1]  # Extracts all integers and picks the last one
-            end_block = int(last_integer)
             try:
+                last_integer = re.findall(r'\d+', e)[-1]  # Extracts all integers and picks the last one
+                end_block = int(last_integer)
                 vaults_created = self.contract.NewFundCreated.query("*", start_block=start_block, stop_block=end_block, engine_to_use="subsquid")
             except:
-                vaults_created = self.contract.NewFundCreated.query("*", start_block=start_block, stop_block=end_block)
+                vaults_created = self.contract.NewFundCreated.query("*", start_block=start_block, stop_block=end_block) 
         
         return vaults_created['event_arguments'].values
-
-
-"""
-_fundOwner=owner, 
-_fundName=name, 
-_fundSymbol=symbol, 
-_denominationAsset=denomination_asset, 
-_sharesActionTimelock=shares_action_timelock_in_seconds, 
-_feeManagerConfigData=fee_manager_config_data, 
-_policyManagerConfigData=policy_manager_config_data, 
-sender=self.sender
-
-fee_manager_config_data = b'0x000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000003000000000000000000000000faf2c3db614e9d38fe05edc634848be7ff0542b9000000000000000000000000fedc73464dfd156d30f6524654a5d56e766da0c300000000000000000000000006b13918e988d1314da1a9da4c0cde5fe994364a0000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000033b2e3ca43bf4678b4d45c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000003e80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000064'
-
-policy_manager_config_data = b'0x000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000040000000000000000000000009e076e7d35a3b881ab9e3da958431630fdfa756f0000000000000000000000003a49d5aec385ac1bde99f305316b945c5ee71312000000000000000000000000966ec191ed9e026cb6f7e22bb2a284bad6a2838d000000000000000000000000747beaee139fba4a89fa71bebb5f21231530292b0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000016345785d8a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-
-settingsEncoding = [
-  {
-    "type": "uint256",
-    "name": "minInvestmentAmount",
-  },
-  {
-    "type": "uint256",
-    "name": "maxInvestmentAmount",
-  },
-]
-"""

@@ -1,40 +1,43 @@
 import os
 from ape import Contract
-from typing import Union
+from typing import List, Union
 
 
 class Vault:
-    def __init__(self, address: str, sender: str):
-        self.contract = Contract(
-            address,
-            # abi=os.path.join(os.path.dirname(__file__), "assets/vault.json"),
-        )
+    def __init__(self, proxy_address: str, sender: str, comptroller_address: str=None):
         self.vault_proxy = Contract(
-            self.contract.getAccessor(),
+            proxy_address,
             # abi=os.path.join(os.path.dirname(__file__), "assets/vault_proxy.json"),
         )
-        self.name = self.contract.name()
-        self.symbol = self.contract.symbol()
-        self.decimals = self.contract.decimals()
-        self.denomination_asset = Contract(self.vault_proxy.getDenominationAsset())
+        self.comptroller_proxy = Contract(
+            comptroller_address,
+            # abi=os.path.join(os.path.dirname(__file__), "assets/comptroller_proxy.json"),
+        ) if comptroller_address else Contract(
+            self.vault_proxy.getAccessor(),
+            # abi=os.path.join(os.path.dirname(__file__), "assets/comptroller_proxy.json"),
+        )
+        self.name = self.vault_proxy.name()
+        self.symbol = self.vault_proxy.symbol()
+        self.decimals = self.vault_proxy.decimals()
+        self.denomination_asset = Contract(self.comptroller_proxy.getDenominationAsset())
         self.denomination_asset_decimals = self.denomination_asset.decimals()
 
         self.sender = sender
 
     def get_timelock(self) -> int:
-        return self.vault_proxy.getSharesActionTimelock()
+        return self.comptroller_proxy.getSharesActionTimelock()
     
     def get_total_shares(self):
         return self.vault_proxy.totalSupply() / 10**self.decimals
 
     def deposit(self, amount: Union[int, float], slippage: float = 0.01, simulate: bool = False):
         scaled_amount = int((amount * 10**self.denomination_asset_decimals) * (1 - slippage))
-        if scaled_amount < self.denomination_asset.allowance(_owner=self.sender, _spender=self.vault_proxy):
-            self.denomination_asset.approve(self.vault_proxy, scaled_amount, sender=self.sender)
+        if scaled_amount < self.denomination_asset.allowance(_owner=self.sender, _spender=self.comptroller_proxy):
+            self.denomination_asset.approve(self.comptroller_proxy, scaled_amount, sender=self.sender)
         if simulate:
-            return self.vault_proxy.buyShares.call(scaled_amount, sender=self.sender)
+            return self.comptroller_proxy.buyShares.call(scaled_amount, sender=self.sender)
         else:
-            return self.vault_proxy.buyShares(scaled_amount, sender=self.sender)
+            return self.comptroller_proxy.buyShares(scaled_amount, sender=self.sender)
         
     def redeem(self, shares_amount: int, payout_assets: list, payout_percentages: list, recipient: str=None, simulate: bool = False):
         """
@@ -46,8 +49,14 @@ class Vault:
 
         # TODO: accept payout_percentages as q list of floats and parse the decimals here
         if simulate:
-            return self.vault_proxy.redeemSharesForSpecificAssets.call(recipient, shares_amount, payout_assets, payout_percentages, sender=self.sender)
+            return self.comptroller_proxy.redeemSharesForSpecificAssets.call(recipient, shares_amount, payout_assets, payout_percentages, sender=self.sender)
         else:
-            return self.vault_proxy.redeemSharesForSpecificAssets(recipient, shares_amount, payout_assets, payout_percentages, sender=self.sender)
-
+            return self.comptroller_proxy.redeemSharesForSpecificAssets(recipient, shares_amount, payout_assets, payout_percentages, sender=self.sender)
     
+    # def get_tracked_assets(self) -> List[str]:
+    #     return self.vault_proxy.getTrackedAssets()
+    # 
+    # def get_external_positions(self) -> List[str]:
+    #     return self.vault_proxy.getActiveExternalPositions()
+
+
